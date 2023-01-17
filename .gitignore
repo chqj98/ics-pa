@@ -10,3 +10,4 @@
 !.gitignore
 !init.sh
 !Docker/Dockerfile
+/fceux-am
