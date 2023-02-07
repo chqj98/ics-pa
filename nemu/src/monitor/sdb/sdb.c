@@ -15,9 +15,13 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <cpu/ifetch.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+
+
+#define Mr vaddr_read
 
 static int is_batch_mode = false;
 
@@ -47,6 +51,73 @@ static int cmd_c(char *args) {
   return 0;
 }
 
+static int cmd_si(char *args) {
+  if(args == NULL) {
+    cpu_exec(1);
+    return 0;
+  }
+  int n = atoi(args);
+  if(n <= 0) {
+    Log("illegal input");
+    return 0;
+  }
+  cpu_exec(-1);
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if(args == NULL) {
+    Log("illegal input, eg: info r/w");
+    return 0;
+  }
+  if(strcmp(args, INFO_SUBCMD_R) == 0) {
+    isa_reg_display();
+    return 0;
+  }
+  else if(strcmp(args, INFO_SUBCMD_W) == 0) {
+
+    return -1;
+  }
+  else {
+    Log("unknown sub-cmd");
+    return 0;
+  }
+}
+
+static int cmd_x(char *args) {
+  char* arg1 = NULL;
+  char* arg2 = NULL;
+  int arg1_i, arg2_i, threshold = 0;
+  if(args == NULL) {
+    Log("illegal input, eg: x N EXPR(10 $esp)");
+    return 0;
+  }
+
+  arg2 = (char*) memchr(args, ' ', strlen(args)) + 1;
+  arg1 = (char*) malloc(strlen(args) - strlen(arg2));
+  memset(arg1, '\0', strlen(args) - strlen(arg2));
+  memcpy(arg1, args, strlen(args) - strlen(arg2) - 1);
+  sscanf(arg1, "%d", &arg1_i);  
+  sscanf(arg2, "%X", &arg2_i);  
+  free(arg1);
+  
+  threshold = arg1_i/4 + 1;
+  for(int i=0; i<threshold; i++) {
+    printf("[0x%08X] 0x%08X \n",arg2_i ,Mr(arg2_i, 4));
+    arg2_i += 0x4;
+  }
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  bool result = false;
+  if(args == NULL) {
+    Log("illegal input, eg: p EXPR($eax + 1)");
+    return 0;
+  }
+  expr(args, &result);
+  return 0;
+}
 
 static int cmd_q(char *args) {
   return -1;
@@ -62,6 +133,10 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
+  { "si", "Execute N instructions in a single step, eg: si [N](default:1)", cmd_si },
+  { "x", "do scanning the memory form EXPR, eg: x N EXPR(10 $esp)", cmd_x },
+  { "p", "evaluate the expression, eg: p EXPR($eax + 1)", cmd_p },
+  { "info", "Get more info from nemu what you need, eg: info r/w", cmd_info },
 
   /* TODO: Add more commands */
 

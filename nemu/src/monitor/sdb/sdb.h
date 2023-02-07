@@ -18,6 +18,9 @@
 
 #include <common.h>
 
+#define INFO_SUBCMD_R "r"
+#define INFO_SUBCMD_W "w"
+ 
 word_t expr(char *e, bool *success);
 
 #endif
