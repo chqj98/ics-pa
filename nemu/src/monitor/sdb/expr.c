@@ -21,7 +21,7 @@
 #include <regex.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ, TK_NUMBER
+  TK_NOTYPE = 256, TK_EQ, TK_NUMBER, TK_UNEQ, TK_AND, TK_HEX_NUMBER, TK_REG_NAME
 
   /* TODO: Add more token types */
 
@@ -31,16 +31,20 @@ static struct rule {
   const char *regex;
   int token_type;
 } rules[] = {
-  {" +", TK_NOTYPE},        // spaces
-  {"\\+", '+'},             // plus
-  {"==", TK_EQ},            // equal
-  {"\\-", '-'},             // minus
-  {"\\*", '*'},             // multiply
-  {"\\/", '/'},             // division
-  {"[0-9]+", TK_NUMBER},    // number
-  {"\\(", '('},             // left brackets
-  {"\\)", ')'},             // right brackets
-  {"\\,", ','}              // comma
+  {" +", TK_NOTYPE},                      // spaces
+  {"\\+", '+'},                           // plus
+  {"==", TK_EQ},                          // equal
+  {"!=", TK_UNEQ},                        // unequal
+  {"&&", TK_AND},                         // and
+  {"\\-", '-'},                           // minus
+  {"\\*", '*'},                           // multiply
+  {"\\/", '/'},                           // division
+  {"[0-9]+", TK_NUMBER},                  // number
+  {"\\$[a-zA-Z0-9\\{\\}]+", TK_REG_NAME}, // reg_name
+  {"0x[0-9]+", TK_HEX_NUMBER},            // hex number
+  {"\\(", '('},                           // left brackets
+  {"\\)", ')'},                           // right brackets
+  {"\\,", ','}                            // comma
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -94,14 +98,18 @@ static bool make_token(char *e) {
         switch (rules[i].token_type) {
           case TK_NOTYPE: {break;};
           case '+': {tokens[nr_token].type = '+';strcpy(tokens[nr_token].str, "+");nr_token++;break;};
-          case TK_EQ: {tokens[nr_token].type = TK_EQ;strcpy(tokens[nr_token].str, "==");nr_token++;break;};
           case '-': {tokens[nr_token].type = '-';strcpy(tokens[nr_token].str, "-");nr_token++;break;};
           case '*': {tokens[nr_token].type = '*';strcpy(tokens[nr_token].str, "*");nr_token++;break;};
           case '/': {tokens[nr_token].type = '/';strcpy(tokens[nr_token].str, "/");nr_token++;break;};
-          case TK_NUMBER: {tokens[nr_token].type = TK_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
           case '(': {tokens[nr_token].type = '(';strcpy(tokens[nr_token].str, "(");nr_token++;break;};
           case ')': {tokens[nr_token].type = ')';strcpy(tokens[nr_token].str, ")");nr_token++;break;};
           case ',': {tokens[nr_token].type = ',';strcpy(tokens[nr_token].str, ",");nr_token++;break;};
+          case TK_EQ: {tokens[nr_token].type = TK_EQ;strcpy(tokens[nr_token].str, "==");nr_token++;break;};
+          case TK_NUMBER: {tokens[nr_token].type = TK_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
+          case TK_UNEQ: {tokens[nr_token].type = TK_UNEQ;strcpy(tokens[nr_token].str, "!=");nr_token++;break;};
+          case TK_AND: {tokens[nr_token].type = TK_AND;strcpy(tokens[nr_token].str, "&&");nr_token++;break;};
+          case TK_REG_NAME: {tokens[nr_token].type = TK_REG_NAME;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
+          case TK_HEX_NUMBER: {tokens[nr_token].type = TK_HEX_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
           default: TODO();
         }
         

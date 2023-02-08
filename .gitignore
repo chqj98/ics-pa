@@ -11,3 +11,4 @@
 !init.sh
 !Docker/Dockerfile
 /fceux-am
+/am-kernels

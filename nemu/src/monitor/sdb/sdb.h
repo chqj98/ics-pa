@@ -20,7 +20,19 @@
 
 #define INFO_SUBCMD_R "r"
 #define INFO_SUBCMD_W "w"
- 
+
+typedef struct watchpoint {
+  int NO;
+  struct watchpoint *next;
+
+  /* TODO: Add more members if necessary */
+
+} WP;
+
 word_t expr(char *e, bool *success);
+WP* new_wp();
+void free_wp(WP *wp);
+void show_head();
+void show_free();
 
 #endif

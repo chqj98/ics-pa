@@ -17,17 +17,8 @@
 
 #define NR_WP 32
 
-typedef struct watchpoint {
-  int NO;
-  struct watchpoint *next;
-
-  /* TODO: Add more members if necessary */
-
-} WP;
-
 static WP wp_pool[NR_WP] = {};
 static WP *head = NULL, *free_ = NULL;
-
 void init_wp_pool() {
   int i;
   for (i = 0; i < NR_WP; i ++) {
@@ -39,5 +30,79 @@ void init_wp_pool() {
   free_ = wp_pool;
 }
 
+WP* new_wp() {
+  if(free_ == NULL) {
+    assert(0);
+  }
+  WP *head_tmp = head;
+  if(head == NULL) {
+    head = free_;
+    free_ = free_->next;
+    head->next = NULL;
+    return head;
+  }
+  else {
+    head_tmp = free_;
+    free_ = free_->next;
+    head_tmp->next = head;
+    head = head_tmp;
+    return head;
+  }
+}
+
+void free_wp(WP *wp) {
+  if(head == NULL) { 
+    assert(0);
+  }
+  WP *head_tmp = head;
+  WP *head_forward_tmp = head;
+  do {
+    if(wp->NO == head_tmp->NO) { // find it, need free
+      if(head_forward_tmp == head_tmp) {
+        head = head_tmp->next;
+        head_tmp->next = free_;
+        free_ = head_tmp;
+      }
+      else {
+        head_forward_tmp->next = head_tmp->next;
+        head_tmp->next = free_;
+        free_ = head_tmp;
+      }
+    }
+    head_forward_tmp = head_tmp;
+    head_tmp = head_tmp->next;
+  } 
+  while(head_tmp->next != NULL);
+}
+
+void show_head() {
+  WP *head_tmp = head;
+  if(head_tmp == NULL) {
+    printf("head is empty.\n");
+    return;
+  }
+  printf("head: \n");
+  while(head_tmp != NULL) {
+    printf("[%d]->", head_tmp->NO);
+    head_tmp = head_tmp->next;
+  }
+  printf("end \n");
+  return;
+}
+
+void show_free() {
+  WP *head_tmp = free_;
+  if(head_tmp == NULL) {
+    printf("free is empty.\n");
+    return;
+  }
+  printf("free: \n");
+  while(head_tmp != NULL) {
+    printf("[%d]->", head_tmp->NO);
+    head_tmp = head_tmp->next;
+  }
+  printf("end \n");
+  return;
+}
 /* TODO: Implement the functionality of watchpoint */
 

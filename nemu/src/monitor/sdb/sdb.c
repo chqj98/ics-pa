@@ -119,6 +119,15 @@ static int cmd_p(char *args) {
   return 0;
 }
 
+static int cmd_w(char *args) {
+  
+  return 0;
+}
+
+static int cmd_d(char *args) {
+  return 0;
+}
+
 static int cmd_q(char *args) {
   return -1;
 }
@@ -136,6 +145,8 @@ static struct {
   { "si", "Execute N instructions in a single step, eg: si [N](default:1)", cmd_si },
   { "x", "do scanning the memory form EXPR, eg: x N EXPR(10 $esp)", cmd_x },
   { "p", "evaluate the expression, eg: p EXPR($eax + 1)", cmd_p },
+  { "w", "add a new watchpoints, eg: w EXPR($eax)", cmd_w },
+  { "d", "delete waitchpoint, eg: d N(2)", cmd_d },
   { "info", "Get more info from nemu what you need, eg: info r/w", cmd_info },
 
   /* TODO: Add more commands */
