@@ -15,6 +15,9 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <cpu/ifetch.h>
+
+#define Mr vaddr_read
 
 void init_rand();
 void init_log(const char *log_file);
