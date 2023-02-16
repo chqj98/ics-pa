@@ -24,11 +24,61 @@
  * You can modify this value as you want.
  */
 #define MAX_INST_TO_PRINT 10
+#define RING_DEPTH 11
+
+struct cricular_linked_list {
+  struct cricular_linked_list* before;
+  struct cricular_linked_list* next;
+  char* disassemble_log;
+} ring_fifo;
+
+static struct cricular_linked_list* ring_head;
+static struct cricular_linked_list* ring_end;
+static struct cricular_linked_list* ring_using;
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
+
+void init_ring_buf() {
+  struct cricular_linked_list* forward_ptr = (struct cricular_linked_list*)malloc(sizeof(ring_fifo));
+  forward_ptr->disassemble_log = NULL;
+  forward_ptr->next = NULL;
+  forward_ptr->before = NULL;
+  ring_head = forward_ptr;
+  ring_using = forward_ptr;
+  for (int i=1; i<RING_DEPTH; i++) {
+    struct cricular_linked_list* ptr = (struct cricular_linked_list*)malloc(sizeof(ring_fifo));
+    ptr->disassemble_log = NULL;
+    ptr->next = NULL;
+    ptr->before = forward_ptr;
+    forward_ptr->next = ptr;
+    forward_ptr = ptr;
+  }
+  ring_end = forward_ptr;
+  ring_end->next = ring_head;
+  ring_head->before = ring_end;
+  
+}
+
+static void ring_buf_push_back (char* buf) {
+  if(ring_using->disassemble_log != NULL) {
+    free(ring_using->disassemble_log);
+  }
+  ring_using->disassemble_log = buf;
+  ring_using = ring_using->next;
+}
+
+static void show_ring_buf() {
+  struct cricular_linked_list* ring_using_ptr = ring_using;
+  char* empty = "empty...... \n";
+  do {
+    printf("      %s", (ring_using_ptr->disassemble_log==NULL)?empty:ring_using_ptr->disassemble_log);
+    ring_using_ptr = ring_using_ptr->next;
+  } while (ring_using_ptr != ring_using->before);
+  printf(" ---> %s", (ring_using_ptr->disassemble_log==NULL)?empty:ring_using_ptr->disassemble_log);
+}
 
 void device_update();
 
@@ -47,23 +97,26 @@ static void exec_once(Decode *s, vaddr_t pc) {
   cpu.pc = s->dnpc;
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
-  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-  int ilen = s->snpc - s->pc;
+  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", pc);
+  int ilen = s->snpc - pc;
   int i;
   uint8_t *inst = (uint8_t *)&s->isa.inst.val;
   for (i = ilen - 1; i >= 0; i --) {
     p += snprintf(p, 4, " %02x", inst[i]);
   }
-  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
+  int ilen_max = MUXDEF(CONFIG_ISA_riscv32, 8, 4);
   int space_len = ilen_max - ilen;
   if (space_len < 0) space_len = 0;
   space_len = space_len * 3 + 1;
   memset(p, ' ', space_len);
   p += space_len;
-
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
-      MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
+      MUXDEF(CONFIG_ISA_riscv32, s->snpc-4, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
+  char* log_buf = (char*)malloc(128*sizeof(char));
+  memset(log_buf, '\0', 128);
+  snprintf(log_buf, 127, "0x%08X: [%02X %02X %02X %02X]        %s\n", pc, inst[3], inst[2], inst[1], inst[0], p);
+  ring_buf_push_back(log_buf);
 #endif
 }
 
@@ -85,6 +138,9 @@ static void statistic() {
   Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
   if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
+  if(nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0) {
+    show_ring_buf();
+  }
 }
 
 void assert_fail_msg() {
