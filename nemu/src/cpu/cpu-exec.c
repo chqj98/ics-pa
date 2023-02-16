@@ -77,7 +77,7 @@ static void show_ring_buf() {
     printf("      %s", (ring_using_ptr->disassemble_log==NULL)?empty:ring_using_ptr->disassemble_log);
     ring_using_ptr = ring_using_ptr->next;
   } while (ring_using_ptr != ring_using->before);
-  printf(" ---> %s", (ring_using_ptr->disassemble_log==NULL)?empty:ring_using_ptr->disassemble_log);
+  printf(ANSI_FG_RED" ---> %s"ANSI_NONE, (ring_using_ptr->disassemble_log==NULL)?empty:ring_using_ptr->disassemble_log);
 }
 
 void device_update();
