@@ -26,6 +26,8 @@
 #define MAX_INST_TO_PRINT 10
 #define RING_DEPTH 11
 
+void pmem_show_ring_buf();
+
 struct cricular_linked_list {
   struct cricular_linked_list* before;
   struct cricular_linked_list* next;
@@ -140,6 +142,7 @@ static void statistic() {
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
   if(nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0) {
     show_ring_buf();
+    pmem_show_ring_buf();  
   }
 }
 
