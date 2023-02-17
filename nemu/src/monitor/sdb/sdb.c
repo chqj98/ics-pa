@@ -61,7 +61,8 @@ static int cmd_si(char *args) {
     Log("illegal input");
     return 0;
   }
-  cpu_exec(-1);
+  cpu_exec(n);
+  isa_reg_display();
   return 0;
 }
 
