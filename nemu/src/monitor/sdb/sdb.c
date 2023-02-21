@@ -76,8 +76,9 @@ static int cmd_info(char *args) {
     return 0;
   }
   else if(strcmp(args, INFO_SUBCMD_W) == 0) {
-
-    return -1;
+    show_free();
+    show_head();
+    return 0;
   }
   else {
     Log("unknown sub-cmd");
@@ -111,7 +112,7 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_p(char *args) {
-  bool result = false;
+  int result = 0;
   if(args == NULL) {
     Log("illegal input, eg: p EXPR($eax + 1)");
     return 0;
@@ -121,15 +122,33 @@ static int cmd_p(char *args) {
 }
 
 static int cmd_w(char *args) {
+  if(args == NULL) {
+    Log("illegal input, eg: w $pc == ADDR");
+    return 0;
+  }
+
+  char* e = (char*)malloc(strlen(args) + 1);
+  memset(e, '\0', strlen(args) + 1);
+  memcpy(e, args, strlen(args));
+  printf("e: %s \n", e);
   
+  new_wp(e);
+
   return 0;
 }
 
 static int cmd_d(char *args) {
+  if(args == NULL) {
+    Log("illegal input, eg: d 2");
+    return 0;
+  }
+  int NO = atoi(args);
+  free_wp(NO);
   return 0;
 }
 
 static int cmd_q(char *args) {
+  free_all();
   return -1;
 }
 

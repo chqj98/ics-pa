@@ -20,6 +20,8 @@
  */
 #include <regex.h>
 
+int isa_reg_str_to_index(const char *s);
+
 enum {
   TK_NOTYPE = 256, TK_EQ, TK_NUMBER, TK_UNEQ, TK_AND, TK_HEX_NUMBER, TK_REG_NAME
 
@@ -39,12 +41,12 @@ static struct rule {
   {"\\-", '-'},                           // minus
   {"\\*", '*'},                           // multiply
   {"\\/", '/'},                           // division
-  {"[0-9]+", TK_NUMBER},                  // number
-  {"\\$[a-zA-Z0-9\\{\\}]+", TK_REG_NAME}, // reg_name
-  {"0x[0-9]+", TK_HEX_NUMBER},            // hex number
   {"\\(", '('},                           // left brackets
   {"\\)", ')'},                           // right brackets
-  {"\\,", ','}                            // comma
+  {"\\,", ','},                           // comma
+  {"\\$[a-zA-Z0-9\\{\\}]+", TK_REG_NAME}, // reg_name
+  {"0x[0-9a-zA-Z]+", TK_HEX_NUMBER},      // hex number
+  {"[0-9]+", TK_NUMBER}                   // number
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -97,19 +99,19 @@ static bool make_token(char *e) {
 
         switch (rules[i].token_type) {
           case TK_NOTYPE: {break;};
-          case '+': {tokens[nr_token].type = '+';strcpy(tokens[nr_token].str, "+");nr_token++;break;};
-          case '-': {tokens[nr_token].type = '-';strcpy(tokens[nr_token].str, "-");nr_token++;break;};
-          case '*': {tokens[nr_token].type = '*';strcpy(tokens[nr_token].str, "*");nr_token++;break;};
-          case '/': {tokens[nr_token].type = '/';strcpy(tokens[nr_token].str, "/");nr_token++;break;};
-          case '(': {tokens[nr_token].type = '(';strcpy(tokens[nr_token].str, "(");nr_token++;break;};
-          case ')': {tokens[nr_token].type = ')';strcpy(tokens[nr_token].str, ")");nr_token++;break;};
-          case ',': {tokens[nr_token].type = ',';strcpy(tokens[nr_token].str, ",");nr_token++;break;};
-          case TK_EQ: {tokens[nr_token].type = TK_EQ;strcpy(tokens[nr_token].str, "==");nr_token++;break;};
-          case TK_NUMBER: {tokens[nr_token].type = TK_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
-          case TK_UNEQ: {tokens[nr_token].type = TK_UNEQ;strcpy(tokens[nr_token].str, "!=");nr_token++;break;};
-          case TK_AND: {tokens[nr_token].type = TK_AND;strcpy(tokens[nr_token].str, "&&");nr_token++;break;};
-          case TK_REG_NAME: {tokens[nr_token].type = TK_REG_NAME;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
-          case TK_HEX_NUMBER: {tokens[nr_token].type = TK_HEX_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
+          case '+': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = '+';strcpy(tokens[nr_token].str, "+");nr_token++;break;};
+          case '-': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = '-';strcpy(tokens[nr_token].str, "-");nr_token++;break;};
+          case '*': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = '*';strcpy(tokens[nr_token].str, "*");nr_token++;break;};
+          case '/': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = '/';strcpy(tokens[nr_token].str, "/");nr_token++;break;};
+          case '(': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = '(';strcpy(tokens[nr_token].str, "(");nr_token++;break;};
+          case ')': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = ')';strcpy(tokens[nr_token].str, ")");nr_token++;break;};
+          case ',': {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = ',';strcpy(tokens[nr_token].str, ",");nr_token++;break;};
+          case TK_EQ: {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = TK_EQ;strcpy(tokens[nr_token].str, "==");nr_token++;break;};
+          case TK_NUMBER: {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = TK_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
+          case TK_UNEQ: {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = TK_UNEQ;strcpy(tokens[nr_token].str, "!=");nr_token++;break;};
+          case TK_AND: {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = TK_AND;strcpy(tokens[nr_token].str, "&&");nr_token++;break;};
+          case TK_REG_NAME: {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = TK_REG_NAME;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
+          case TK_HEX_NUMBER: {memset(tokens[nr_token].str, '\0', 32);tokens[nr_token].type = TK_HEX_NUMBER;strncpy(tokens[nr_token].str, substr_start, substr_len);nr_token++;break;};
           default: TODO();
         }
         
@@ -157,6 +159,9 @@ static int find_op_pos(int start_pos, int end_pos) {
     if((tokens[i].type == '+' || tokens[i].type == '-') && dis_find_process == false) {
       op_pos = i;
     }
+    if(tokens[i].type == TK_EQ || tokens[i].type == TK_UNEQ) {
+      op_pos = i;
+    }
   }
   return op_pos;
 }
@@ -196,19 +201,54 @@ static int eval(int start_pos, int end_pos) {
         case '-': return (lval-rval);
         case '*': return (lval*rval);
         case '/': return (lval/rval);
+        case TK_EQ: return (lval==rval)?0:-1;
+        case TK_UNEQ: return (lval!=rval)?0:-1;
         default: TODO();
       }
     }
   }
 }
 
-word_t expr(char *e, bool *success) {
+word_t expr(char *e, int *result) {
   int val;
   if (!make_token(e)) {
-    *success = false;
+    *result = -1;
     return 0;
   }
+  
+  for(int i=0; i<nr_token; i++) {
+    if( tokens[i].type==TK_REG_NAME ) {
+      u_int32_t val_cache = 0;
+      char str_cache[32];
+      if(tokens[i].str[0] == '$') {
+        if(tokens[i].str[1] == '{' && tokens[i].str[strlen(tokens[i].str)-1] == '}' ) {
+          strncpy(str_cache, tokens[i].str+2, strlen(tokens[i].str)-3);
+        }
+        else {
+          strncpy(str_cache, tokens[i].str+1, strlen(tokens[i].str)-1);
+        }
+      }
+      val_cache = (u_int32_t)cpu.gpr[isa_reg_str_to_index(str_cache)];
+      memset(tokens[i].str, '\0', 32);
+      sprintf(tokens[i].str, "%u", val_cache);
+      tokens[i].type=TK_NUMBER;
+    }
+    if( tokens[i].type==TK_HEX_NUMBER ) {
+      int val_cache = 0;
+      sscanf(tokens[i].str, "%X", &val_cache); // str -> dec
+      memset(tokens[i].str, '\0', strlen(tokens[i].str));
+      sprintf(tokens[i].str, "%d", val_cache); // dec -> str
+      tokens[i].type=TK_NUMBER;
+    }
+  }
+
   val = eval(0, nr_token-1);
-  printf("val: %d \n", val);
+  if(val == 0) {
+    *result = 0;
+  }
+  else {
+    *result = -1;
+  }
+  // printf("val: %d \n", val);
   return val;
 }

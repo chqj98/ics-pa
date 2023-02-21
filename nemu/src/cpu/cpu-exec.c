@@ -18,6 +18,7 @@
 #include <cpu/difftest.h>
 #include <locale.h>
 
+
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -27,6 +28,7 @@
 #define RING_DEPTH 11
 
 void pmem_show_ring_buf();
+bool check_WP();
 
 struct cricular_linked_list {
   struct cricular_linked_list* before;
@@ -88,8 +90,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
 #endif
-  if (g_print_step) { IFDEF(CONFIG_ITRACE, printf("%s", ring_using->before->disassemble_log)); }
+  // if (g_print_step) { IFDEF(CONFIG_ITRACE, printf("%s", ring_using->before->disassemble_log)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+  if(check_WP()) {set_nemu_state(NEMU_STOP, _this->pc, 0);}
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
@@ -119,6 +122,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   memset(log_buf, '\0', 128);
   snprintf(log_buf, 127, "0x%08X: [%02X %02X %02X %02X]        %s\n", pc, inst[3], inst[2], inst[1], inst[0], p);
   ring_buf_push_back(log_buf);
+  printf("%s", log_buf);
 #endif
 }
 

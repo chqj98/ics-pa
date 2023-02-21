@@ -24,21 +24,23 @@ void init_wp_pool() {
   for (i = 0; i < NR_WP; i ++) {
     wp_pool[i].NO = i;
     wp_pool[i].next = (i == NR_WP - 1 ? NULL : &wp_pool[i + 1]);
+    wp_pool[i].expr = NULL;
   }
 
   head = NULL;
   free_ = wp_pool;
 }
 
-WP* new_wp() {
+WP* new_wp(char* e) {
   if(free_ == NULL) {
-    assert(0);
+    return NULL;
   }
   WP *head_tmp = head;
   if(head == NULL) {
     head = free_;
     free_ = free_->next;
     head->next = NULL;
+    head->expr = e;
     return head;
   }
   else {
@@ -46,18 +48,22 @@ WP* new_wp() {
     free_ = free_->next;
     head_tmp->next = head;
     head = head_tmp;
+    head->expr = e;
     return head;
   }
 }
 
-void free_wp(WP *wp) {
+void free_wp(int NO) {
   if(head == NULL) { 
-    assert(0);
+    return;
   }
   WP *head_tmp = head;
   WP *head_forward_tmp = head;
   do {
-    if(wp->NO == head_tmp->NO) { // find it, need free
+    if(NO == head_tmp->NO) { // find it, need free
+      if(head_tmp->expr != NULL) {
+        free(head_tmp->expr);
+      }
       if(head_forward_tmp == head_tmp) {
         head = head_tmp->next;
         head_tmp->next = free_;
@@ -72,7 +78,7 @@ void free_wp(WP *wp) {
     head_forward_tmp = head_tmp;
     head_tmp = head_tmp->next;
   } 
-  while(head_tmp->next != NULL);
+  while(head_tmp != NULL);
 }
 
 void show_head() {
@@ -103,6 +109,33 @@ void show_free() {
   }
   printf("end \n");
   return;
+}
+
+bool check_WP() {
+  int result[NR_WP] = {0};
+  bool ret = false;
+  int i = 0;
+  WP *head_tmp = head;
+  while(head_tmp != NULL) {
+    int* res = &result[i];
+    expr(head_tmp->expr, res);
+    head_tmp = head_tmp->next;
+    i++;
+  }
+
+  for(int j=0; j<i; j++) {
+    if(result[j] == 0) {
+      ret = true;
+    }
+  }
+  return ret;
+}
+
+void free_all() {
+  int i;
+  for (i = 0; i < NR_WP; i ++) {
+    free_wp(i);
+  }
 }
 /* TODO: Implement the functionality of watchpoint */
 
