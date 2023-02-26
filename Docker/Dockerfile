@@ -17,5 +17,6 @@ RUN apt-get update \
     && apt-get install git -y \
     && apt-get install libreadline-dev -y \
     && apt-get install libsdl2-dev -y \
-    && apt-get install llvm -y
-
+    && apt-get install llvm -y \
+    && apt-get install g++-riscv64-linux-gnu -y \
+    && apt-get install binutils-riscv64-linux-gnu -y
